@@ -36,7 +36,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminSessionController extends GetxController {
   static const String _demoPasscode = '9999';
-  static const String _adminRoleValue = 'admin';
+  // This panel is the dedicated USTA admin — only the 'usta_admin' role may
+  // enter (kept separate from the product admin / super_admin).
+  static const String _adminRoleValue = 'usta_admin';
 
   /// Cached view of the LATEST cloud verification. Never persisted —
   /// re-derived on every entry to the Admin Panel.
