@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -46,7 +45,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
       snackPosition: SnackPosition.TOP,
       backgroundColor: const Color(0xFFD32F2F),
       colorText: Colors.white,
-      margin: EdgeInsets.all(12.w),
+      margin: EdgeInsets.all(12),
       borderRadius: 10,
       duration: const Duration(seconds: 3),
     );
@@ -70,7 +69,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
       snackPosition: SnackPosition.TOP,
       backgroundColor: const Color(0xFF198754),
       colorText: Colors.white,
-      margin: EdgeInsets.all(12.w),
+      margin: EdgeInsets.all(12),
       borderRadius: 10,
       duration: const Duration(seconds: 3),
     );
@@ -95,7 +94,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
       snackPosition: SnackPosition.TOP,
       backgroundColor: const Color(0xFFB45309),
       colorText: Colors.white,
-      margin: EdgeInsets.all(12.w),
+      margin: EdgeInsets.all(12),
       borderRadius: 10,
       duration: const Duration(seconds: 2),
     );
@@ -127,7 +126,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
         title: Text(
           'detail_title'.tr,
           style: TextStyle(
-            fontSize: 15.sp,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
@@ -140,16 +139,16 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
             constraints:
                 BoxConstraints(maxWidth: isWide ? 560 : double.infinity),
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 20.h),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _headerCard(pv),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: 12),
                   _privilegedBanner(),
-                  SizedBox(height: 10.h),
+                  SizedBox(height: 10),
                   _detailsCard(pv, provinceName, dateStr),
-                  SizedBox(height: 18.h),
+                  SizedBox(height: 18),
                   if (actionable) _actionRow(),
                 ],
               ),
@@ -164,19 +163,19 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
 
   Widget _headerCard(PendingVerification pv) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(children: [
         Container(
-          width: 60.w,
-          height: 60.w,
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.18),
             shape: BoxShape.circle,
@@ -188,39 +187,41 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
             _initials(pv.name),
             style: TextStyle(
               color: Colors.white,
-              fontSize: 20.sp,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
-        SizedBox(width: 12.w),
+        SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 pv.name,
-                style: TextStyle(
-                  fontSize: 16.sp,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                   letterSpacing: -0.2,
                 ),
               ),
-              SizedBox(height: 4.h),
+              const SizedBox(height: 4),
               Container(
                 padding: EdgeInsets.symmetric(
-                    horizontal: 8.w, vertical: 3.h),
+                    horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.18),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   pv.source == 'self_registration'
                       ? 'detail_badge_self'.tr
                       : 'detail_badge_seeded'.tr,
                   style: TextStyle(
-                    fontSize: 10.5.sp,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
                     letterSpacing: 0.3,
@@ -238,21 +239,21 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
 
   Widget _privilegedBanner() {
     return Container(
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.amber.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(10.r),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.amber.withOpacity(0.40), width: 1),
       ),
       child: Row(children: [
         Icon(Icons.shield_outlined,
-            size: 14.sp, color: Colors.amber.shade800),
-        SizedBox(width: 8.w),
+            size: 14, color: Colors.amber.shade800),
+        SizedBox(width: 8),
         Expanded(
           child: Text(
             'detail_privileged_warning'.tr,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: 11,
               color: const Color(0xFF92400E),
               fontWeight: FontWeight.w600,
               height: 1.35,
@@ -268,10 +269,10 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
   Widget _detailsCard(
       PendingVerification pv, String provinceName, String dateStr) {
     return Container(
-      padding: EdgeInsets.all(14.w),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0x14000000)),
       ),
       child: Column(children: [
@@ -321,7 +322,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
           label: 'ID',
           value: pv.ustaId,
           valueStyle: TextStyle(
-            fontSize: 11.sp,
+            fontSize: 11,
             fontFamily: 'monospace',
             color: Colors.grey.shade600,
           ),
@@ -338,16 +339,16 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
     TextStyle? valueStyle,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 16.sp, color: const Color(0xFF1976D2)),
-        SizedBox(width: 10.w),
+        Icon(icon, size: 16, color: const Color(0xFF1976D2)),
+        SizedBox(width: 10),
         SizedBox(
-          width: 100.w,
+          width: 100,
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: 11,
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w600,
             ),
@@ -358,7 +359,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
             value,
             style: valueStyle ??
                 TextStyle(
-                  fontSize: 12.5.sp,
+                  fontSize: 12.5,
                   color: valueColor ?? const Color(0xFF1F2937),
                   fontWeight: FontWeight.w700,
                 ),
@@ -370,17 +371,17 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
 
   Widget _phoneRow(String phone) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(Icons.phone_in_talk_rounded,
-            size: 16.sp, color: const Color(0xFFD32F2F)),
-        SizedBox(width: 10.w),
+            size: 16, color: const Color(0xFFD32F2F)),
+        SizedBox(width: 10),
         SizedBox(
-          width: 100.w,
+          width: 100,
           child: Text(
             'Telefon',
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: 11,
               color: Colors.grey.shade600,
               fontWeight: FontWeight.w600,
             ),
@@ -390,7 +391,7 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
           child: SelectableText(
             phone,
             style: TextStyle(
-              fontSize: 14.sp,
+              fontSize: 14,
               fontFamily: 'monospace',
               fontWeight: FontWeight.w800,
               color: const Color(0xFFD32F2F),
@@ -399,15 +400,15 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
           ),
         ),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: const Color(0xFFFEE2E2),
-            borderRadius: BorderRadius.circular(6.r),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             'RAW',
             style: TextStyle(
-              fontSize: 9.sp,
+              fontSize: 9,
               fontWeight: FontWeight.w800,
               color: const Color(0xFFB91C1C),
             ),
@@ -433,26 +434,26 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
           icon: const Icon(Icons.close_rounded, size: 16),
           label: Text('dash_action_reject'.tr,
               style: TextStyle(
-                  fontSize: 13.sp, fontWeight: FontWeight.w800)),
+                  fontSize: 13, fontWeight: FontWeight.w800)),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFFB45309),
             side: const BorderSide(color: Color(0xFFB45309), width: 1.4),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(12),
             ),
-            padding: EdgeInsets.symmetric(vertical: 13.h),
+            padding: EdgeInsets.symmetric(vertical: 13),
           ),
         ),
       ),
-      SizedBox(width: 10.w),
+      SizedBox(width: 10),
       Expanded(
         flex: 2,
         child: ElevatedButton.icon(
           onPressed: _acting ? null : _approve,
           icon: _acting
               ? SizedBox(
-                  width: 14.w,
-                  height: 14.w,
+                  width: 14,
+                  height: 14,
                   child: const CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white),
                 )
@@ -460,16 +461,16 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
           label: Text(
             _acting ? 'reg_submitting'.tr : 'dash_action_approve'.tr,
             style:
-                TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w800),
+                TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF198754),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(12),
             ),
-            padding: EdgeInsets.symmetric(vertical: 13.h),
+            padding: EdgeInsets.symmetric(vertical: 13),
           ),
         ),
       ),
