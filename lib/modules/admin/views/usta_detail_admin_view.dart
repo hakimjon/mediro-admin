@@ -37,12 +37,33 @@ class UstaDetailAdminView extends StatefulWidget {
 class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
   bool _acting = false;
 
+  /// Surfaced when an approve/reject write was blocked (RLS) or failed
+  /// (network) — the change did NOT persist.
+  void _actionError() {
+    Get.snackbar(
+      'Xatolik',
+      "Saqlab bo'lmadi. Internet yoki ruxsatni tekshiring.",
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFFD32F2F),
+      colorText: Colors.white,
+      margin: EdgeInsets.all(12.w),
+      borderRadius: 10,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   Future<void> _approve() async {
     if (_acting) return;
     setState(() => _acting = true);
     HapticFeedback.mediumImpact();
-    PendingVerificationProvider.approveByUstaId(widget.pending.ustaId);
+    final ok =
+        await PendingVerificationProvider.approveByUstaId(widget.pending.ustaId);
     if (!mounted) return;
+    if (!ok) {
+      setState(() => _acting = false);
+      _actionError();
+      return;
+    }
     Get.snackbar(
       'detail_snack_approved'.tr,
       'detail_snack_approved_body'.tr.replaceAll('{name}', widget.pending.name),
@@ -60,8 +81,14 @@ class _UstaDetailAdminViewState extends State<UstaDetailAdminView> {
     if (_acting) return;
     setState(() => _acting = true);
     HapticFeedback.mediumImpact();
-    PendingVerificationProvider.rejectByUstaId(widget.pending.ustaId);
+    final ok =
+        await PendingVerificationProvider.rejectByUstaId(widget.pending.ustaId);
     if (!mounted) return;
+    if (!ok) {
+      setState(() => _acting = false);
+      _actionError();
+      return;
+    }
     Get.snackbar(
       'detail_snack_rejected'.tr,
       'detail_snack_rejected_body'.tr.replaceAll('{name}', widget.pending.name),

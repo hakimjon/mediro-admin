@@ -136,32 +136,38 @@ class PendingVerificationProvider {
   }
 
   /// Pass-through to UstaRegistrationProvider for the admin delete action.
-  static void softDeleteByUstaId(String ustaId) {
-    _pending.removeWhere((_, v) => v.ustaId == ustaId);
-    UstaRegistrationProvider.softDelete(ustaId);
+  /// Returns true only when the DB write succeeded (drops the seeded entry
+  /// only then so the queue reflects the real state).
+  static Future<bool> softDeleteByUstaId(String ustaId) async {
+    final ok = await UstaRegistrationProvider.softDelete(ustaId);
+    if (ok) _pending.removeWhere((_, v) => v.ustaId == ustaId);
+    return ok;
   }
 
   /// Pass-through to UstaRegistrationProvider for the admin suspend action.
   /// Marks an approved usta as 'rejected' so they vanish from the
   /// marketplace listing but stay in the admin queue for audit.
-  static void suspendByUstaId(String ustaId) {
-    _pending.removeWhere((_, v) => v.ustaId == ustaId);
-    UstaRegistrationProvider.suspend(ustaId);
+  static Future<bool> suspendByUstaId(String ustaId) async {
+    final ok = await UstaRegistrationProvider.suspend(ustaId);
+    if (ok) _pending.removeWhere((_, v) => v.ustaId == ustaId);
+    return ok;
   }
 
   /// Approves by usta id. Handles both seeded mock rows and bridged
   /// self-registrations — the latter flips the registration status to
   /// 'approved' so the usta becomes visible in the marketplace.
-  static void approveByUstaId(String ustaId) {
-    _pending.removeWhere((_, v) => v.ustaId == ustaId);
-    UstaRegistrationProvider.approve(ustaId);
+  static Future<bool> approveByUstaId(String ustaId) async {
+    final ok = await UstaRegistrationProvider.approve(ustaId);
+    if (ok) _pending.removeWhere((_, v) => v.ustaId == ustaId);
+    return ok;
   }
 
   /// Rejects by usta id. Hides from both queues + marks the registration
   /// 'rejected' (which keeps it invisible from the marketplace forever).
-  static void rejectByUstaId(String ustaId) {
-    _pending.removeWhere((_, v) => v.ustaId == ustaId);
-    UstaRegistrationProvider.reject(ustaId);
+  static Future<bool> rejectByUstaId(String ustaId) async {
+    final ok = await UstaRegistrationProvider.reject(ustaId);
+    if (ok) _pending.removeWhere((_, v) => v.ustaId == ustaId);
+    return ok;
   }
 }
 

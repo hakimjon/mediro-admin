@@ -189,37 +189,44 @@ class UstaRegistrationProvider {
 
   /// Flips [id]'s status to 'approved' and pushes the change remotely.
   /// The next render of UstaListingPage / cross-sell will include this usta.
-  static void approve(String id) {
-    for (final r in _all) {
-      if (r.id == id) {
-        r.status = 'approved';
-        unawaited(_updateRemote(id, 'approved'));
-        return;
+  static Future<bool> approve(String id) => _setStatus(id, 'approved');
+
+  static Future<bool> reject(String id) => _setStatus(id, 'rejected');
+
+  /// Writes the status to Supabase FIRST and only mutates the in-memory
+  /// mirror when the DB confirms the change — so the admin never sees a fake
+  /// "success" when the write was blocked (RLS) or failed (network). Returns
+  /// true only when a row was actually updated.
+  static Future<bool> _setStatus(String id, String status) async {
+    final ok = await _updateRemote(id, status);
+    if (ok) {
+      for (final r in _all) {
+        if (r.id == id) {
+          r.status = status;
+          break;
+        }
       }
     }
+    return ok;
   }
 
-  static void reject(String id) {
-    for (final r in _all) {
-      if (r.id == id) {
-        r.status = 'rejected';
-        unawaited(_updateRemote(id, 'rejected'));
-        return;
-      }
-    }
-  }
-
-  static Future<void> _updateRemote(String id, String status) async {
+  /// Returns true when the update touched a row. Uses `.select()` so an
+  /// RLS-blocked update (0 rows, no exception) reports failure instead of a
+  /// silent no-op.
+  static Future<bool> _updateRemote(String id, String status) async {
     try {
-      await Supabase.instance.client
+      final res = await Supabase.instance.client
           .from('usta_registrations')
           .update({'status': status})
-          .eq('id', id);
+          .eq('id', id)
+          .select();
+      return (res as List).isNotEmpty;
     } catch (e) {
       if (kDebugMode) {
         // ignore: avoid_print
-        print('[usta_registration] remote update skipped: $e');
+        print('[usta_registration] remote update failed: $e');
       }
+      return false;
     }
   }
 
@@ -329,28 +336,12 @@ class UstaRegistrationProvider {
   /// Soft-deletes a registration. Sets status to 'deleted' so the entry
   /// is hidden everywhere (marketplace, admin queue) but the row stays
   /// in Supabase for audit. Hard delete is a future option.
-  static void softDelete(String id) {
-    for (final r in _all) {
-      if (r.id == id) {
-        r.status = 'deleted';
-        unawaited(_updateRemote(id, 'deleted'));
-        return;
-      }
-    }
-  }
+  static Future<bool> softDelete(String id) => _setStatus(id, 'deleted');
 
   /// Admin action: revoke approval. Sets status back to 'rejected' so the
   /// usta is removed from the marketplace listing but kept in the queue
   /// for audit (admin can re-approve later if it was a mistake).
-  static void suspend(String id) {
-    for (final r in _all) {
-      if (r.id == id) {
-        r.status = 'rejected';
-        unawaited(_updateRemote(id, 'rejected'));
-        return;
-      }
-    }
-  }
+  static Future<bool> suspend(String id) => _setStatus(id, 'rejected');
 
   // approvedAsUstaModels() — REMOVED in admin-web build (marketplace-only)
 

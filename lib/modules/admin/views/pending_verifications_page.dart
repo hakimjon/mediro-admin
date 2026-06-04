@@ -100,8 +100,25 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
 
   // ── Actions ──────────────────────────────────────────────────────────
 
-  void _approve(PendingVerification pv) {
-    setState(() => PendingVerificationProvider.approveByUstaId(pv.ustaId));
+  /// Shown when a DB write was blocked (RLS) or failed (network) — the
+  /// action did NOT persist, so the admin must know instead of seeing a
+  /// fake success.
+  void _toastError() => _toast(
+        title: 'Xatolik',
+        body: "Saqlab bo'lmadi. Internet yoki ruxsatni tekshiring.",
+        bg: const Color(0xFFD32F2F),
+      );
+
+  Future<void> _refreshFromCloud() async {
+    await UstaRegistrationProvider.fetchAllFromCloud(force: true);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _approve(PendingVerification pv) async {
+    final ok = await PendingVerificationProvider.approveByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
     _toast(
       title: 'detail_snack_approved'.tr,
       body: 'verif_snack_approved_body'.tr.replaceAll('{name}', pv.name),
@@ -109,8 +126,11 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
     );
   }
 
-  void _reject(PendingVerification pv) {
-    setState(() => PendingVerificationProvider.rejectByUstaId(pv.ustaId));
+  Future<void> _reject(PendingVerification pv) async {
+    final ok = await PendingVerificationProvider.rejectByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
     _toast(
       title: 'detail_snack_rejected'.tr,
       body: 'verif_snack_rejected_body'.tr.replaceAll('{name}', pv.name),
@@ -120,8 +140,11 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
 
   /// Admin: revoke approval — usta vanishes from the marketplace listing
   /// but stays in the queue (status='rejected') for audit / re-approval.
-  void _suspend(PendingVerification pv) {
-    setState(() => PendingVerificationProvider.suspendByUstaId(pv.ustaId));
+  Future<void> _suspend(PendingVerification pv) async {
+    final ok = await PendingVerificationProvider.suspendByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
     _toast(
       title: "Faollik to'xtatildi",
       body: '${pv.name} marketdan vaqtinchalik olib tashlandi.',
@@ -160,7 +183,10 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
       ),
     );
     if (confirmed != true) return;
-    setState(() => PendingVerificationProvider.softDeleteByUstaId(pv.ustaId));
+    final ok = await PendingVerificationProvider.softDeleteByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
     _toast(
       title: "O'chirildi",
       body: "${pv.name} marketdan o'chirildi.",
