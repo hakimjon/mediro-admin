@@ -20,6 +20,18 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
   String _search = '';
   int _sortColumnIndex = 4; // Created (newest first by default)
   bool _sortAscending = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await ComplaintProvider.fetchAllFromCloud(force: true);
+    if (mounted) setState(() => _loading = false);
+  }
 
   /// Surfaced when a complaint status write was blocked (RLS) or failed
   /// (network) — the change did NOT persist.
@@ -90,6 +102,15 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      const spinner = Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(),
+        ),
+      );
+      return widget.embedded ? spinner : const Scaffold(body: spinner);
+    }
     final list = _filtered();
     if (widget.embedded) return _buildEmbedded(list);
     final body = list.isEmpty

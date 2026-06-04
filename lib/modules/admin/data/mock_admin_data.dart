@@ -201,30 +201,49 @@ class Complaint {
 
 class ComplaintProvider {
   static int _seq = 100;
-  static final List<Complaint> _all = [
-    Complaint(
-      id: 'cmp-1',
-      ustaId: 'u03',
-      ustaName: 'Jasur Olimov',
-      clientLabel: 'Mijoz: Anvar M.',
-      orderId: 'o-2031',
-      reason: 'Vaqtida kelmadi',
-      comment: '3 soat kechikdi va ogohlantirmadi.',
-      status: 'under_review',
-      createdAt: DateTime.now().subtract(const Duration(hours: 6)),
-    ),
-    Complaint(
-      id: 'cmp-2',
-      ustaId: 'u08',
-      ustaName: 'Behzod Hasanov',
-      clientLabel: 'Mijoz: Sherzod B.',
-      orderId: 'o-2022',
-      reason: 'Sifatsiz ish',
-      comment: 'Quvurni noto\'g\'ri ulagan, qayta chaqirishimga to\'g\'ri keldi.',
-      status: 'resolved',
-      createdAt: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ];
+  // Real complaints are pulled from Supabase by fetchAllFromCloud(); the
+  // seeded demo rows were removed so the admin only ever sees real data.
+  static final List<Complaint> _all = [];
+  static bool _hasFetched = false;
+  static bool get hasFetched => _hasFetched;
+
+  /// Pulls complaints from the Supabase `complaints` table into the in-memory
+  /// mirror so the admin queue shows REAL complaints (not seeds). Safe to call
+  /// repeatedly; pass force to bypass the once-per-session cache.
+  static Future<void> fetchAllFromCloud({bool force = false}) async {
+    if (_hasFetched && !force) return;
+    try {
+      final rows = await Supabase.instance.client
+          .from('complaints')
+          .select(
+              'id, usta_id, usta_name, client_label, order_id, reason, comment, status, created_at')
+          .order('created_at', ascending: false);
+      _all
+        ..clear()
+        ..addAll((rows as List).map((raw) {
+          final m = Map<String, dynamic>.from(raw as Map);
+          return Complaint(
+            id: (m['id'] ?? '').toString(),
+            ustaId: (m['usta_id'] ?? '').toString(),
+            ustaName: (m['usta_name'] ?? '').toString(),
+            clientLabel: (m['client_label'] ?? '').toString(),
+            orderId: (m['order_id'] ?? '').toString(),
+            reason: (m['reason'] ?? '').toString(),
+            comment: (m['comment'] ?? '').toString(),
+            status: (m['status'] ?? 'open').toString(),
+            createdAt:
+                DateTime.tryParse((m['created_at'] ?? '').toString()) ??
+                    DateTime.now(),
+          );
+        }));
+      _hasFetched = true;
+    } catch (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[complaints] fetch failed: $e');
+      }
+    }
+  }
 
   static List<Complaint> all() =>
       List<Complaint>.from(_all)..sort((a, b) => b.createdAt.compareTo(a.createdAt));
