@@ -1,4 +1,5 @@
-import 'dart:async';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -193,15 +194,18 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         r.submittedAt.toIso8601String(),
       ].join(','));
     }
-    final csv = buf.toString();
+    // Lead with a BOM so Excel opens the UTF-8 (Cyrillic/Uzbek) text right.
+    final csv = '﻿${buf.toString()}';
 
-    // Browser download via data URL — works in Flutter web without
-    // adding a file_saver dependency. Triggers the OS Save As dialog.
-    final base64 = Uri.encodeComponent(csv);
-    final href = 'data:text/csv;charset=utf-8,$base64';
-    // ignore: avoid_web_libraries_in_flutter
-    final anchor = _createDownloadAnchor(href, 'mediro_registrations.csv');
-    anchor?.call();
+    // Real browser download via a Blob object URL + a temporary anchor —
+    // works in any Flutter Web build without extra deps. Triggers the OS
+    // Save As / download.
+    final blob = html.Blob(<String>[csv], 'text/csv;charset=utf-8');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', 'mediro_registrations.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 
   String _csvEscape(String s) {
@@ -211,28 +215,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     return s;
   }
 
-  /// Returns a closure that triggers a browser download. Lazy-imports
-  /// dart:html via a separate helper file so non-web builds don't see
-  /// the deprecated dart:html import.
-  void Function()? _createDownloadAnchor(String href, String filename) {
-    try {
-      // Inline minimal HTML download trick using a temporary anchor.
-      // This works in any Flutter Web build without extra deps.
-      // ignore: avoid_web_libraries_in_flutter
-      // (Done via package:web/web in a real-world long-term solution.)
-      return () {
-        // ignore: undefined_prefixed_name
-        // We do the actual DOM call lazily; we use document/element
-        // through a global js helper here to keep this file dart:html-free.
-        // For simplicity, just open in a new tab if download fails.
-        // (Most browsers handle data:text/csv as a download.)
-        // ignore: avoid_print
-        debugPrint('[analytics] CSV ready (${href.length} chars)');
-      };
-    } catch (_) {
-      return null;
-    }
-  }
 }
 
 // ─── Toolbar ─────────────────────────────────────────────────────────────
