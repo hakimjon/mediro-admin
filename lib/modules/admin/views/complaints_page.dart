@@ -21,8 +21,26 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
   int _sortColumnIndex = 4; // Created (newest first by default)
   bool _sortAscending = false;
 
-  void _resolve(Complaint c) {
-    setState(() => ComplaintProvider.resolve(c.id));
+  /// Surfaced when a complaint status write was blocked (RLS) or failed
+  /// (network) — the change did NOT persist.
+  void _actionError() {
+    Get.snackbar(
+      'Xatolik',
+      "Saqlab bo'lmadi. Internet yoki ruxsatni tekshiring.",
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFFD32F2F),
+      colorText: Colors.white,
+      margin: EdgeInsets.all(12.w),
+      borderRadius: 10,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  Future<void> _resolve(Complaint c) async {
+    final ok = await ComplaintProvider.resolve(c.id);
+    if (!mounted) return;
+    if (!ok) return _actionError();
+    setState(() {});
     Get.snackbar(
       'cmp_admin_snack_resolved'.tr,
       'cmp_admin_snack_resolved_body'.tr.replaceAll('{name}', c.ustaName),
@@ -35,8 +53,11 @@ class _ComplaintsPageState extends State<ComplaintsPage> {
     );
   }
 
-  void _dismiss(Complaint c) {
-    setState(() => ComplaintProvider.dismiss(c.id));
+  Future<void> _dismiss(Complaint c) async {
+    final ok = await ComplaintProvider.dismiss(c.id);
+    if (!mounted) return;
+    if (!ok) return _actionError();
+    setState(() {});
     Get.snackbar(
       'cmp_admin_snack_rejected'.tr,
       'cmp_admin_snack_rejected_body'.tr,

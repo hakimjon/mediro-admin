@@ -266,25 +266,27 @@ class ComplaintProvider {
 
   /// Admin: marks the complaint resolved (lifts suspension if this was the
   /// last `under_review` entry for that usta).
-  static void resolve(String complaintId) {
-    for (final c in _all) {
-      if (c.id == complaintId) {
-        c.status = 'resolved';
-        unawaited(_remoteUpdateStatus(complaintId, 'resolved'));
-        return;
-      }
-    }
-  }
+  static Future<bool> resolve(String complaintId) =>
+      _setStatus(complaintId, 'resolved');
 
   /// Admin: rejects the complaint (also lifts suspension, same as resolve).
-  static void dismiss(String complaintId) {
-    for (final c in _all) {
-      if (c.id == complaintId) {
-        c.status = 'dismissed';
-        unawaited(_remoteUpdateStatus(complaintId, 'dismissed'));
-        return;
+  static Future<bool> dismiss(String complaintId) =>
+      _setStatus(complaintId, 'dismissed');
+
+  /// Writes to Supabase first (with `.select()` so an RLS-blocked 0-row
+  /// update reports failure) and only mutates the in-memory mirror on
+  /// success. Returns true when the DB actually changed.
+  static Future<bool> _setStatus(String complaintId, String status) async {
+    final ok = await _remoteUpdateStatus(complaintId, status);
+    if (ok) {
+      for (final c in _all) {
+        if (c.id == complaintId) {
+          c.status = status;
+          break;
+        }
       }
     }
+    return ok;
   }
 
   // ── Supabase bridge ──────────────────────────────────────────────────
@@ -309,17 +311,20 @@ class ComplaintProvider {
     }
   }
 
-  static Future<void> _remoteUpdateStatus(String id, String status) async {
+  static Future<bool> _remoteUpdateStatus(String id, String status) async {
     try {
-      await Supabase.instance.client
+      final res = await Supabase.instance.client
           .from('complaints')
           .update({'status': status})
-          .eq('id', id);
+          .eq('id', id)
+          .select();
+      return (res as List).isNotEmpty;
     } catch (e) {
       if (kDebugMode) {
         // ignore: avoid_print
-        print('[complaints] update skipped: $e');
+        print('[complaints] update failed: $e');
       }
+      return false;
     }
   }
 

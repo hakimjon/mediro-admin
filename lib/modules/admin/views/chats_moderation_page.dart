@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -179,11 +178,20 @@ class _ChatsModerationPageState extends State<ChatsModerationPage> {
     try {
       // FK from chat_messages.room_id REFERENCES chat_rooms(id) ON DELETE CASCADE
       // takes care of the messages — we only need to delete the room.
-      await Supabase.instance.client
+      // `.select()` so an RLS-blocked delete (0 rows, no exception) is caught.
+      final res = await Supabase.instance.client
           .from('chat_rooms')
           .delete()
-          .eq('id', room.roomId);
+          .eq('id', room.roomId)
+          .select();
       if (!mounted) return;
+      if ((res as List).isEmpty) {
+        _toast(
+            title: 'O\'chirib bo\'lmadi',
+            body: 'Ruxsat yo\'q yoki suhbat topilmadi.',
+            bg: Colors.red.shade700);
+        return;
+      }
       _toast(
         title: 'O\'chirildi',
         body: '${room.ustaName.isEmpty ? room.ustaId : room.ustaName} bilan suhbat o\'chirildi.',
@@ -191,10 +199,12 @@ class _ChatsModerationPageState extends State<ChatsModerationPage> {
       );
       _load();
     } catch (e) {
-      _toast(
-          title: 'O\'chirib bo\'lmadi',
-          body: e.toString(),
-          bg: Colors.red.shade700);
+      if (mounted) {
+        _toast(
+            title: 'O\'chirib bo\'lmadi',
+            body: e.toString(),
+            bg: Colors.red.shade700);
+      }
     }
   }
 
@@ -618,14 +628,42 @@ class _RoomMessagesDialogState extends State<_RoomMessagesDialog> {
     }
   }
 
+  void _toast({required String title, required String body, required Color bg}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: bg,
+        content: Text('$title — $body',
+            style: const TextStyle(color: Colors.white)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _deleteMessage(int id) async {
     try {
-      await Supabase.instance.client
+      final res = await Supabase.instance.client
           .from('chat_messages')
           .delete()
-          .eq('id', id);
-      if (mounted) _load();
-    } catch (_) {/* silent */}
+          .eq('id', id)
+          .select();
+      if (!mounted) return;
+      if ((res as List).isEmpty) {
+        _toast(
+            title: 'O\'chirib bo\'lmadi',
+            body: 'Ruxsat yo\'q yoki xabar topilmadi.',
+            bg: Colors.red.shade700);
+        return;
+      }
+      _load();
+    } catch (e) {
+      if (mounted) {
+        _toast(
+            title: 'O\'chirib bo\'lmadi',
+            body: e.toString(),
+            bg: Colors.red.shade700);
+      }
+    }
   }
 
   @override
