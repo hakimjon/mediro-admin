@@ -49,6 +49,15 @@ class PendingVerification {
   /// 'seeded' (mock fixture) | 'self_registration' (came from the new form).
   final String source;
 
+  /// Registration status — lets the queue card decide when to show the
+  /// re-review badge (only meaningful while 'pending').
+  final String status;
+
+  /// The specialty the usta had BEFORE a self-edit pushed them back to
+  /// 'pending'. When set (and different from [specialty]) this row is a
+  /// re-review, not a fresh sign-up.
+  final String? prevSpecialty;
+
   const PendingVerification({
     required this.ustaId,
     required this.name,
@@ -59,6 +68,8 @@ class PendingVerification {
     this.phoneRaw,
     this.provinceId,
     this.source = 'seeded',
+    this.status = 'pending',
+    this.prevSpecialty,
   });
 }
 
@@ -87,6 +98,8 @@ class PendingVerificationProvider {
         phoneRaw: r.phone,
         provinceId: r.provinceId,
         source: 'self_registration',
+        status: r.status,
+        prevSpecialty: r.prevCategory,
       );
     }).toList();
     final out = [...fromSeed, ...fromRegs];
@@ -116,6 +129,8 @@ class PendingVerificationProvider {
         phoneRaw: r.phone,
         provinceId: r.provinceId,
         source: 'self_registration',
+        status: r.status,
+        prevSpecialty: r.prevCategory,
       );
     }).toList();
   }

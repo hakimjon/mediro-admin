@@ -62,6 +62,8 @@ class UstaRegistration {
   final int experienceYears;
   String status;                  // 'pending' | 'approved' | 'rejected'
   final DateTime submittedAt;
+  String? prevCategory;           // set when a re-edit sent an approved usta
+                                  // back to 'pending' (the OLD specialty)
 
   UstaRegistration({
     required this.id,
@@ -72,6 +74,7 @@ class UstaRegistration {
     required this.experienceYears,
     required this.status,
     required this.submittedAt,
+    this.prevCategory,
   });
 
   /// Zero-Leak: returns "+998 ** *** ** 67" so the admin can identify the
@@ -263,10 +266,12 @@ class UstaRegistrationProvider {
           submittedAt:
               DateTime.tryParse((m['submitted_at'] ?? '').toString()) ??
                   DateTime.now(),
+          prevCategory: (m['prev_category'] as String?),
         );
         if (existingById.containsKey(id)) {
-          // Refresh status in case admin changed it remotely.
+          // Refresh status + prev-category in case it changed remotely.
           existingById[id]!.status = entry.status;
+          existingById[id]!.prevCategory = entry.prevCategory;
         } else {
           _all.add(entry);
         }

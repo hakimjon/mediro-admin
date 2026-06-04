@@ -446,8 +446,36 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
                 onSelectChanged: (_) => _openDetail(pv),
                 cells: [
                   DataCell(_nameCell(pv)),
-                  DataCell(Text(pv.specialty,
-                      style: const TextStyle(fontSize: 12.5))),
+                  DataCell(
+                    (pv.status == 'pending' &&
+                            (pv.prevSpecialty ?? '').isNotEmpty &&
+                            pv.prevSpecialty != pv.specialty)
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(pv.specialty,
+                                  style: const TextStyle(fontSize: 12.5)),
+                              const SizedBox(height: 2),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF3E0),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Text('⟳ avval: ${pv.prevSpecialty}',
+                                    style: const TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFFE65100),
+                                    )),
+                              ),
+                            ],
+                          )
+                        : Text(pv.specialty,
+                            style: const TextStyle(fontSize: 12.5)),
+                  ),
                   DataCell(Text(pv.phoneMasked ?? '—',
                       style: TextStyle(
                         fontSize: 12,
