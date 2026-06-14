@@ -37,7 +37,10 @@ class MediroAdminApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(360, 690),
+      // Desktop-first admin: a desktop design size keeps .w/.sp/.r at their
+      // authored values on a desktop browser (the 360×690 phone size blew
+      // horizontal spacing up ~4× on wide screens — oversized / spread out).
+      designSize: const Size(1280, 800),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
