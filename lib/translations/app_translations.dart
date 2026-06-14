@@ -834,6 +834,7 @@ class AppTranslations extends Translations {
       'common_edit': 'Tahrirlash',
       'common_delete': "O'chirish",
       // ── Provider + offerings ──
+      'common_close': 'Yopish',
       'prov_title': 'Provayderlar',
       'prov_subtitle': "Usta / MCHJ / texnika-egasini va ularning xizmatlarini qo'shing.",
       'prov_add': "Provayder qo'shish",
@@ -1767,6 +1768,7 @@ class AppTranslations extends Translations {
       'common_edit': 'Редактировать',
       'common_delete': 'Удалить',
       // ── Provider + offerings ──
+      'common_close': 'Закрыть',
       'prov_title': 'Поставщики',
       'prov_subtitle': 'Добавляйте мастеров / МЧЖ / владельцев техники и их услуги.',
       'prov_add': 'Добавить поставщика',

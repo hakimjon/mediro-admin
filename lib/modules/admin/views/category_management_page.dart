@@ -230,10 +230,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 Row(children: [
-                  Text('cat_title'.tr,
-                      style: TextStyle(
-                          fontSize: 20.sp, fontWeight: FontWeight.w800)),
-                  const Spacer(),
+                  Expanded(
+                    child: Text('cat_title'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 20.sp, fontWeight: FontWeight.w800)),
+                  ),
                   ElevatedButton.icon(
                     onPressed: () => _addOrEdit(),
                     icon: const Icon(Icons.add_rounded, size: 18),

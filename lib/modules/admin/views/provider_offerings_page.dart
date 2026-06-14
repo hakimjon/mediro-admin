@@ -110,10 +110,13 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 Row(children: [
-                  Text('prov_title'.tr,
-                      style: TextStyle(
-                          fontSize: 20.sp, fontWeight: FontWeight.w800)),
-                  const Spacer(),
+                  Expanded(
+                    child: Text('prov_title'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 20.sp, fontWeight: FontWeight.w800)),
+                  ),
                   ElevatedButton.icon(
                     onPressed: () => _openEditor(),
                     icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
@@ -442,16 +445,18 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
         constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+            padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
             child: Row(children: [
-              Text(
-                  widget.provider == null
-                      ? 'prov_add'.tr
-                      : 'prov_edit'.tr,
-                  style:
-                      TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800)),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                    widget.provider == null ? 'prov_add'.tr : 'prov_edit'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 17.sp, fontWeight: FontWeight.w800)),
+              ),
               IconButton(
+                  tooltip: 'common_close'.tr,
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context, _dirty)),
             ]),
