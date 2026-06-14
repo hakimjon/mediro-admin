@@ -232,7 +232,7 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
   final _inn = TextEditingController();
   final _about = TextEditingController();
   String _type = 'individual';
-  String _contact = 'both';
+  String _contact = 'chat'; // individual default — protects personal phone (PII)
   int _province = RegionController.defaultProvinceId;
   String? _avatarUrl;
   String? _savedId;
@@ -426,7 +426,12 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
                     'individual': 'prov_type_individual'.tr,
                     'business': 'prov_type_business'.tr,
                   },
-                  onChanged: (v) => setState(() => _type = v!),
+                  // PII nudge: individual → chat (hide personal phone);
+                  // business → both (public company number + chat).
+                  onChanged: (v) => setState(() {
+                    _type = v!;
+                    _contact = _type == 'business' ? 'both' : 'chat';
+                  }),
                 ),
                 if (business) ...[
                   _field(_legalName, 'prov_legal_name'.tr),
