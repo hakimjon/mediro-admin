@@ -14,6 +14,7 @@ import 'category_management_page.dart';
 import 'chats_moderation_page.dart';
 import 'complaints_page.dart';
 import 'pending_verifications_page.dart';
+import 'provider_offerings_page.dart';
 import 'telemetry_page.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -218,6 +219,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       _selectSection(5);
       return KeyEventResult.handled;
     }
+    if (event.logicalKey == LogicalKeyboardKey.digit7) {
+      _selectSection(6);
+      return KeyEventResult.handled;
+    }
     return KeyEventResult.ignored;
   }
 
@@ -284,6 +289,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         ChatsModerationPage(embedded: true),
         AnalyticsPage(embedded: true),
         CategoryManagementPage(embedded: true),
+        ProviderOfferingsPage(embedded: true),
       ],
     );
   }
@@ -664,6 +670,15 @@ class _DesktopSidebar extends StatelessWidget {
             badgeColor: const Color(0xFF198754),
             selected: selectedIndex == 5,
             onTap: () => onSelect(5),
+          ),
+          _SidebarItem(
+            icon: Icons.engineering_rounded,
+            label: 'prov_title'.tr,
+            shortcut: 'Alt+7',
+            badge: null,
+            badgeColor: const Color(0xFF0891B2),
+            selected: selectedIndex == 6,
+            onTap: () => onSelect(6),
           ),
           const Spacer(),
           if (adminEmail.isNotEmpty)
