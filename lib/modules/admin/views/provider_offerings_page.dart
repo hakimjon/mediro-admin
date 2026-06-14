@@ -240,6 +240,10 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
   bool _dirty = false;
 
   List<Map<String, dynamic>> _offerings = const [];
+  // District (base location) + "serves whole province" coverage.
+  String? _districtId;
+  bool _coversProvince = false;
+  List<Map<String, dynamic>> _districts = const [];
 
   @override
   void initState() {
@@ -255,9 +259,29 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
       _type = (p['provider_type'] ?? 'individual').toString();
       _contact = (p['contact_mode'] ?? 'both').toString();
       _province = p['province_id'] as int? ?? RegionController.defaultProvinceId;
+      _districtId = p['district_id']?.toString();
+      _coversProvince = p['covers_province'] == true;
       _avatarUrl = p['avatar_url']?.toString();
       _loadOfferings();
     }
+    _loadDistricts(_province);
+  }
+
+  Future<void> _loadDistricts(int province) async {
+    try {
+      final res =
+          await _client.rpc('districts_of', params: {'p_province': province});
+      if (!mounted) return;
+      setState(() {
+        _districts =
+            (res as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        // Drop a district that no longer belongs to the chosen province.
+        if (_districtId != null &&
+            !_districts.any((d) => d['id'].toString() == _districtId)) {
+          _districtId = null;
+        }
+      });
+    } catch (_) {/* leave empty — district is optional */}
   }
 
   Future<void> _loadOfferings() async {
@@ -293,6 +317,8 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
       'provider_type': _type,
       'contact_mode': _contact,
       'province_id': _province,
+      'district_id': _districtId,
+      'covers_province': _coversProvince,
       'legal_name': _type == 'business' ? _legalName.text.trim() : null,
       'inn': _type == 'business' ? _inn.text.trim() : null,
       'about': _about.text.trim(),
@@ -442,7 +468,50 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
                   label: 'prov_region'.tr,
                   value: _province,
                   items: RegionController.provinces,
-                  onChanged: (v) => setState(() => _province = v!),
+                  onChanged: (v) => setState(() {
+                    _province = v!;
+                    _districtId = null;
+                    _loadDistricts(_province);
+                  }),
+                ),
+                // District (base location) — cascades from the province.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: DropdownButtonFormField<String?>(
+                    value: _districtId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                        labelText: 'prov_district'.tr, isDense: true),
+                    items: [
+                      DropdownMenuItem(
+                          value: null, child: Text('prov_district_any'.tr)),
+                      for (final d in _districts)
+                        DropdownMenuItem(
+                            value: d['id'].toString(),
+                            child: Text((d['name_uz'] ?? '').toString())),
+                    ],
+                    onChanged: (v) => setState(() => _districtId = v),
+                  ),
+                ),
+                // Coverage: serves the whole province (e.g. a crane that travels).
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SwitchListTile(
+                    value: _coversProvince,
+                    onChanged: (v) => setState(() => _coversProvince = v),
+                    title: Text('prov_covers_province'.tr,
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: Text('prov_covers_hint'.tr,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary)),
+                    activeColor: AppColors.primary,
+                    dense: true,
+                  ),
                 ),
                 _dropdown<String>(
                   label: 'prov_contact'.tr,
