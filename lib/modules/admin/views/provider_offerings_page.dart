@@ -47,7 +47,7 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
       final provs = await _client
           .from('usta_registrations')
           .select(
-              'id, name, phone, status, provider_type, province_id, legal_name, inn, contact_mode, about, avatar_url')
+              'id, name, phone, status, provider_type, province_id, legal_name, inn, contact_mode, about, avatar_url, district_id, covers_province')
           .neq('status', 'deleted')
           .order('submitted_at', ascending: false)
           .limit(500);
@@ -478,7 +478,12 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: DropdownButtonFormField<String?>(
-                    value: _districtId,
+                    // Fall back to null while districts are still loading, so the
+                    // value always matches an item (avoids a transient assert).
+                    value: _districts
+                            .any((d) => d['id'].toString() == _districtId)
+                        ? _districtId
+                        : null,
                     isExpanded: true,
                     decoration: InputDecoration(
                         labelText: 'prov_district'.tr, isDense: true),
