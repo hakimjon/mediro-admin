@@ -29,6 +29,7 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
   List<Map<String, dynamic>> _providers = const [];
   List<Map<String, dynamic>> _cats = const [];
   Map<String, int> _offeringCounts = {};
+  Map<String, int> _pendingCounts = {};
   bool _loading = true;
 
   @override
@@ -51,18 +52,24 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
           .neq('status', 'deleted')
           .order('submitted_at', ascending: false)
           .limit(500);
-      final offs =
-          await _client.from('service_offerings').select('provider_id');
+      final offs = await _client
+          .from('service_offerings')
+          .select('provider_id, status');
       final counts = <String, int>{};
+      final pending = <String, int>{};
       for (final o in (offs as List)) {
         final pid = (o['provider_id'] ?? '').toString();
         counts[pid] = (counts[pid] ?? 0) + 1;
+        if ((o['status'] ?? '').toString() == 'pending') {
+          pending[pid] = (pending[pid] ?? 0) + 1;
+        }
       }
       if (!mounted) return;
       setState(() {
         _cats = List<Map<String, dynamic>>.from(cats);
         _providers = List<Map<String, dynamic>>.from(provs);
         _offeringCounts = counts;
+        _pendingCounts = pending;
         _loading = false;
       });
     } catch (e) {
@@ -145,6 +152,7 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
     final business = (p['provider_type'] ?? '') == 'business';
     final status = (p['status'] ?? '').toString();
     final count = _offeringCounts[id] ?? 0;
+    final pendingN = _pendingCounts[id] ?? 0;
     final region =
         RegionController.provinces[p['province_id'] as int? ?? -1] ?? '';
     return InkWell(
@@ -185,6 +193,21 @@ class _ProviderOfferingsPageState extends State<ProviderOfferingsPage> {
                           fontSize: 11.5.sp, color: AppColors.textSecondary)),
                 ]),
           ),
+          if (pendingN > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('prov_pending_n'.tr.replaceAll('{n}', '$pendingN'),
+                  style: TextStyle(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.warning)),
+            ),
+            const SizedBox(width: 6),
+          ],
           _statusChip(status),
           const Icon(Icons.chevron_right, color: AppColors.textHint),
         ]),
@@ -381,6 +404,20 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
       await _client.from('service_offerings').delete().eq('id', id);
       _dirty = true;
       await _loadOfferings();
+    } catch (_) {
+      _toast('prov_err_save'.tr, isError: true);
+    }
+  }
+
+  // Approve a provider-submitted offering (pending → active = goes live).
+  Future<void> _approveOffering(String id) async {
+    try {
+      await _client
+          .from('service_offerings')
+          .update({'status': 'active'}).eq('id', id);
+      _dirty = true;
+      await _loadOfferings();
+      _toast('prov_approved'.tr);
     } catch (_) {
       _toast('prov_err_save'.tr, isError: true);
     }
@@ -584,29 +621,60 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
         ? 'prov_negotiable'.tr
         : '$rate so\'m${o['rate_unit'] != null ? '/${o['rate_unit']}' : ''}';
     final photos = (o['photos'] as List?)?.length ?? 0;
+    final isPending = (o['status'] ?? '').toString() == 'pending';
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: isPending
+              ? AppColors.warning.withValues(alpha: 0.06)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.border)),
+          border: Border.all(
+              color: isPending ? AppColors.warning : AppColors.border)),
       child: Row(children: [
         Expanded(
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                    '${_catName(o['category_id']?.toString())}'
-                    '${(o['title'] ?? '').toString().isNotEmpty ? ' · ${o['title']}' : ''}',
-                    style: TextStyle(
-                        fontSize: 12.5.sp, fontWeight: FontWeight.w600)),
+                Row(children: [
+                  Flexible(
+                    child: Text(
+                        '${_catName(o['category_id']?.toString())}'
+                        '${(o['title'] ?? '').toString().isNotEmpty ? ' · ${o['title']}' : ''}',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12.5.sp, fontWeight: FontWeight.w600)),
+                  ),
+                  if (isPending) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('prov_st_pending'.tr,
+                          style: TextStyle(
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.warning)),
+                    ),
+                  ],
+                ]),
                 Text('$rateText · $photos 📷',
                     style: TextStyle(
                         fontSize: 10.5.sp, color: AppColors.textSecondary)),
               ]),
         ),
+        if (isPending)
+          IconButton(
+              tooltip: 'prov_approve'.tr,
+              icon: const Icon(Icons.check_circle_outline,
+                  size: 18, color: AppColors.primary),
+              onPressed: () => _approveOffering(o['id'].toString())),
         IconButton(
             icon: const Icon(Icons.edit_outlined, size: 16),
             onPressed: () => _addOrEditOffering(offering: o)),
