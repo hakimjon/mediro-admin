@@ -64,6 +64,7 @@ class UstaRegistration {
   final DateTime submittedAt;
   String? prevCategory;           // set when a re-edit sent an approved usta
                                   // back to 'pending' (the OLD specialty)
+  final String providerType;      // 'individual' | 'business' (MCHJ/firm)
 
   UstaRegistration({
     required this.id,
@@ -75,7 +76,11 @@ class UstaRegistration {
     required this.status,
     required this.submittedAt,
     this.prevCategory,
+    this.providerType = 'individual',
   });
+
+  /// True for a company / MCHJ (equipment owner), false for an individual usta.
+  bool get isBusiness => providerType == 'business';
 
   /// Zero-Leak: returns "+998 ** *** ** 67" so the admin can identify the
   /// applicant without exposing the full number on screen / in screenshots.
@@ -274,6 +279,7 @@ class UstaRegistrationProvider {
               DateTime.tryParse((m['submitted_at'] ?? '').toString()) ??
                   DateTime.now(),
           prevCategory: (m['prev_category'] as String?),
+          providerType: (m['provider_type'] ?? 'individual').toString(),
         );
         if (existingById.containsKey(id)) {
           // Refresh status + prev-category in case it changed remotely.

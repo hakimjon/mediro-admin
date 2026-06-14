@@ -58,6 +58,9 @@ class PendingVerification {
   /// re-review, not a fresh sign-up.
   final String? prevSpecialty;
 
+  /// True for a company / MCHJ (equipment owner), false for an individual usta.
+  final bool isBusiness;
+
   const PendingVerification({
     required this.ustaId,
     required this.name,
@@ -70,6 +73,7 @@ class PendingVerification {
     this.source = 'seeded',
     this.status = 'pending',
     this.prevSpecialty,
+    this.isBusiness = false,
   });
 }
 
@@ -100,6 +104,7 @@ class PendingVerificationProvider {
         source: 'self_registration',
         status: r.status,
         prevSpecialty: r.prevCategory,
+        isBusiness: r.isBusiness,
       );
     }).toList();
     final out = [...fromSeed, ...fromRegs];
@@ -131,6 +136,7 @@ class PendingVerificationProvider {
         source: 'self_registration',
         status: r.status,
         prevSpecialty: r.prevCategory,
+        isBusiness: r.isBusiness,
       );
     }).toList();
   }

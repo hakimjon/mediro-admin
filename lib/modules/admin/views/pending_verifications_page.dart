@@ -564,12 +564,31 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
             )),
       ),
       const SizedBox(width: 10),
-      Text(pv.name,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1F2937),
-          )),
+      Flexible(
+        child: Text(pv.name,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F2937),
+            )),
+      ),
+      if (pv.isBusiness) ...[
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0891B2).withOpacity(0.14),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: const Text('MCHJ',
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0891B2),
+              )),
+        ),
+      ],
     ]);
   }
 
