@@ -498,7 +498,9 @@ class _ProviderEditorDialogState extends State<_ProviderEditorDialog> {
                   // business → both (public company number + chat).
                   onChanged: (v) => setState(() {
                     _type = v!;
-                    _contact = _type == 'business' ? 'both' : 'chat';
+                    // Firma = faqat qo'ng'iroq (ilovani ishlatmaydi → chat
+                    // o'qilmay qoladi). Yakka usta = chat (shaxsiy raqam maxfiy).
+                    _contact = _type == 'business' ? 'call' : 'chat';
                   }),
                 ),
                 if (business) ...[
