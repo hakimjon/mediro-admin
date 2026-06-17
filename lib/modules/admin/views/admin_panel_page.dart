@@ -11,6 +11,7 @@ import '../data/realtime_admin_service.dart';
 import 'admin_login_page.dart';
 import 'analytics_page.dart';
 import 'category_management_page.dart';
+import 'chat_reports_page.dart';
 import 'chats_moderation_page.dart';
 import 'complaints_page.dart';
 import 'pending_verifications_page.dart';
@@ -290,6 +291,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         AnalyticsPage(embedded: true),
         CategoryManagementPage(embedded: true),
         ProviderOfferingsPage(embedded: true),
+        ChatReportsPage(embedded: true),
       ],
     );
   }
@@ -679,6 +681,15 @@ class _DesktopSidebar extends StatelessWidget {
             badgeColor: const Color(0xFF0891B2),
             selected: selectedIndex == 6,
             onTap: () => onSelect(6),
+          ),
+          _SidebarItem(
+            icon: Icons.report_problem_rounded,
+            label: 'Chat shikoyatlari',
+            shortcut: 'Alt+8',
+            badge: null,
+            badgeColor: const Color(0xFFD32F2F),
+            selected: selectedIndex == 7,
+            onTap: () => onSelect(7),
           ),
           const Spacer(),
           if (adminEmail.isNotEmpty)
