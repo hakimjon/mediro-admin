@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/chat_report_provider.dart';
 
@@ -22,6 +23,7 @@ class ChatReportsPage extends StatefulWidget {
 class _ChatReportsPageState extends State<ChatReportsPage> {
   String _statusFilter = 'all';
   bool _loading = true;
+  RealtimeChannel? _channel;
 
   static const _reasonLabels = <String, String>{
     'haqorat': 'Haqorat',
@@ -34,6 +36,24 @@ class _ChatReportsPageState extends State<ChatReportsPage> {
   void initState() {
     super.initState();
     _load();
+    // Live: new reports + status changes appear without a manual refresh.
+    _channel = Supabase.instance.client
+        .channel('admin_chat_reports')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'chat_reports',
+          callback: (_) {
+            if (mounted) _load();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _channel?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> _load() async {
