@@ -16,9 +16,22 @@ class ServiceStorage {
 
   /// Opens the file picker and uploads the chosen image. Returns the public
   /// URL, or null if the user cancelled or the upload failed.
-  static Future<String?> pickAndUpload({int counter = 0}) async {
-    final XFile? file =
-        await _picker.pickImage(source: ImageSource.gallery, imageQuality: 82);
+  ///
+  /// [maxWidth]/[maxHeight] cap the picked image's dimensions (image_picker
+  /// downscales proportionally before upload) — pass them for thumbnails like
+  /// category tiles so a huge photo isn't stored/served at full size. Omit for
+  /// full-resolution uploads (avatars, equipment galleries).
+  static Future<String?> pickAndUpload({
+    int counter = 0,
+    double? maxWidth,
+    double? maxHeight,
+  }) async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 82,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+    );
     if (file == null) return null;
     final bytes = await file.readAsBytes();
     return uploadBytes(bytes, file.name, counter: counter);

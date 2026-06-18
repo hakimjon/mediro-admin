@@ -137,7 +137,10 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                     ? null
                     : () async {
                         setLocal(() => uploading = true);
-                        final url = await ServiceStorage.pickAndUpload();
+                        // Tile thumbnails — cap at 1000px so a huge photo is
+                        // auto-downscaled (stays light; the app crops to fit).
+                        final url = await ServiceStorage.pickAndUpload(
+                            maxWidth: 1000, maxHeight: 1000);
                         if (url != null) imageUrl = url;
                         setLocal(() => uploading = false);
                       },
