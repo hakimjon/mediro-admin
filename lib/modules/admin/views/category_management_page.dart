@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/colors.dart';
+import '../data/service_storage.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  CATEGORY MANAGEMENT — the no-code lever for the services catalog.
@@ -44,7 +45,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           .order('sort_order');
       final c = await _client
           .from('service_categories')
-          .select('id, group_id, key, name_uz, name_ru, sort_order')
+          .select('id, group_id, key, name_uz, name_ru, sort_order, image_url')
           .order('sort_order');
       if (!mounted) return;
       setState(() {
@@ -83,6 +84,10 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
         : (_groups.isNotEmpty ? _groups.first['id'] as String? : null);
     final nameUz = TextEditingController(text: existing?['name_uz'] ?? '');
     final nameRu = TextEditingController(text: existing?['name_ru'] ?? '');
+    // Admin-managed tile artwork. Uploaded to the service-photos bucket; the
+    // app shows it on the services landing (NULL → the app's icon fallback).
+    String? imageUrl = existing?['image_url'] as String?;
+    bool uploading = false;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -119,6 +124,71 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                 decoration: InputDecoration(
                     labelText: 'cat_name_ru'.tr, isDense: true),
               ),
+              SizedBox(height: 14.h),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('cat_image'.tr,
+                    style: TextStyle(
+                        fontSize: 12.sp, color: AppColors.textSecondary)),
+              ),
+              SizedBox(height: 6.h),
+              GestureDetector(
+                onTap: uploading
+                    ? null
+                    : () async {
+                        setLocal(() => uploading = true);
+                        final url = await ServiceStorage.pickAndUpload();
+                        if (url != null) imageUrl = url;
+                        setLocal(() => uploading = false);
+                      },
+                child: Container(
+                  height: 120,
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: uploading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: AppColors.primary, strokeWidth: 2))
+                      : (imageUrl == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add_photo_alternate_outlined,
+                                    color: AppColors.textHint, size: 28),
+                                SizedBox(height: 4.h),
+                                Text('cat_pick_image'.tr,
+                                    style: TextStyle(
+                                        fontSize: 12.sp,
+                                        color: AppColors.textHint)),
+                              ],
+                            )
+                          : Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(imageUrl!, fit: BoxFit.cover),
+                                Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
+                                    width: double.infinity,
+                                    color: Colors.black54,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 4),
+                                    child: Text('cat_change_image'.tr,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11)),
+                                  ),
+                                ),
+                              ],
+                            )),
+                ),
+              ),
             ]),
           ),
           actions: [
@@ -149,7 +219,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       if (isEdit) {
         final res = await _client
             .from('service_categories')
-            .update({'name_uz': uz, 'name_ru': ru, 'group_id': groupId})
+            .update({
+              'name_uz': uz,
+              'name_ru': ru,
+              'group_id': groupId,
+              'image_url': imageUrl,
+            })
             .eq('id', existing['id'])
             .select();
         if ((res as List).isEmpty) throw Exception('blocked');
@@ -164,6 +239,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           'name_uz': uz,
           'name_ru': ru,
           'sort_order': maxSort + 1,
+          'image_url': imageUrl,
         }).select();
         if ((res as List).isEmpty) throw Exception('blocked');
       }
@@ -301,6 +377,14 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
           border: Border(top: BorderSide(color: AppColors.divider))),
       padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       child: Row(children: [
+        if ((c['image_url'] ?? '').toString().isNotEmpty) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network((c['image_url']).toString(),
+                width: 40, height: 40, fit: BoxFit.cover),
+          ),
+          const SizedBox(width: 10),
+        ],
         Expanded(
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
