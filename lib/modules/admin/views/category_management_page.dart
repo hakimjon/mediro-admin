@@ -42,11 +42,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
       final g = await _client
           .from('service_groups')
           .select('id, key, name_uz, name_ru, image_url, sort_order')
-          .order('sort_order');
+          // Dart postgrest .order() defaults to DESCENDING — force ascending so
+          // groups read Ustalar → Texnika → … (same order as the app).
+          .order('sort_order', ascending: true);
       final c = await _client
           .from('service_categories')
           .select('id, group_id, key, name_uz, name_ru, sort_order, image_url')
-          .order('sort_order');
+          .order('sort_order', ascending: true);
       if (!mounted) return;
       setState(() {
         _groups = List<Map<String, dynamic>>.from(g);
