@@ -341,8 +341,46 @@ class UstaRegistrationProvider {
 
   /// Soft-deletes a registration. Sets status to 'deleted' so the entry
   /// is hidden everywhere (marketplace, admin queue) but the row stays
-  /// in Supabase for audit. Hard delete is a future option.
+  /// in Supabase for audit. [restore] brings it back; [purge] ends it.
   static Future<bool> softDelete(String id) => _setStatus(id, 'deleted');
+
+  /// Brings a binned registration back — to 'pending', never straight to
+  /// 'approved'.
+  ///
+  /// The status column keeps no memory of what the row was before it was
+  /// binned, so restoring to 'approved' would be a guess, and a wrong guess
+  /// puts a provider in front of customers again with nobody having decided
+  /// that. Landing in the moderation queue costs one more click and cannot
+  /// republish anyone by accident — the same reason the product bin restores
+  /// to draft rather than to published.
+  static Future<bool> restore(String id) => _setStatus(id, 'pending');
+
+  /// Permanently removes a binned registration, with the clean-up the schema
+  /// does not cascade: chat rooms (their messages follow) and reviews.
+  /// Complaints are kept — they are a moderation record and carry their own
+  /// copy of the name, so they still read correctly afterwards.
+  ///
+  /// Goes through the admin_purge_usta RPC rather than deleting from here,
+  /// because usta_registrations has policies for read, update and insert and
+  /// NO delete policy: a client-side delete matches zero rows and reports
+  /// success. The RPC also refuses a row that is not already in the bin, so
+  /// nothing can be destroyed straight from the live list.
+  static Future<bool> purge(String id) async {
+    try {
+      final res = await Supabase.instance.client
+          .rpc('admin_purge_usta', params: {'p_id': id});
+      final row = (res is List && res.isNotEmpty) ? res.first : res;
+      final ok = row is Map && row['r_ok'] == true;
+      if (ok) _all.removeWhere((r) => r.id == id);
+      return ok;
+    } catch (e) {
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[usta_registration] purge failed: $e');
+      }
+      return false;
+    }
+  }
 
   /// Admin action: revoke approval. Sets status back to 'rejected' so the
   /// usta is removed from the marketplace listing but kept in the queue

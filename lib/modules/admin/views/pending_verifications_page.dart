@@ -17,6 +17,14 @@ import 'usta_detail_admin_view.dart';
 //    pending  → [Reject] [Approve]
 //    approved → [Suspend] [Delete]
 //    rejected → [Re-approve] [Delete]
+//    deleted  → [Tiklash] [Butunlay o'chirish]   ← the bin
+//
+//  Delete is soft (status='deleted'). The "O'chirilgan" filter is the way back
+//  in: without it the row survived but nothing could show it, so a mistaken
+//  delete could only be undone from the database. Restore returns the row to
+//  'pending' — never straight to 'approved', so nobody is republished by
+//  accident. Purge is the one action here that cannot be undone, and it only
+//  works on a row already in the bin.
 //
 //  Cloud-backed: pulls fresh data from Supabase on first open via
 //  UstaRegistrationProvider.fetchAllFromCloud().
@@ -166,7 +174,8 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
         ]),
         content: Text(
           "${pv.name} arizasini o'chirmoqchimisiz? "
-          "Bu amal qaytarib bo'lmaydi va usta marketdan butunlay yo'qoladi.",
+          "Usta marketdan yo'qoladi, lekin ma'lumoti saqlanadi — "
+          "«O'chirilgan» bo'limidan qayta tiklash mumkin.",
           style: TextStyle(fontSize: 13.sp, height: 1.4),
         ),
         actions: [
@@ -189,8 +198,67 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
     await _refreshFromCloud();
     _toast(
       title: "O'chirildi",
-      body: "${pv.name} marketdan o'chirildi.",
+      body: "${pv.name} marketdan o'chirildi. Tiklash mumkin.",
       bg: Colors.red.shade700,
+    );
+  }
+
+  /// Bin → 'pending'. No confirmation: restoring is the safe direction, and
+  /// landing in the moderation queue rather than back on the marketplace is
+  /// what makes it safe.
+  Future<void> _restore(PendingVerification pv) async {
+    final ok = await PendingVerificationProvider.restoreByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
+    _toast(
+      title: 'Tiklandi',
+      body: "${pv.name} «Kutilmoqda»ga qaytdi — tasdiqlansa marketda ko'rinadi.",
+      bg: const Color(0xFF2E7D32),
+    );
+  }
+
+  /// Empties one row out of the bin. This one really is irreversible, so the
+  /// dialog says what goes with it instead of a generic warning — the chat
+  /// history is the part nobody expects to lose.
+  Future<void> _confirmPurge(PendingVerification pv) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(children: [
+          Icon(Icons.delete_forever_rounded,
+              size: 22.sp, color: Colors.red.shade700),
+          SizedBox(width: 8.w),
+          const Text('Butunlay o\'chirish'),
+        ]),
+        content: Text(
+          "${pv.name} bazadan butunlay o'chiriladi. "
+          "Xizmatlari, suhbatlari va sharhlari ham ketadi.\n\n"
+          "Bu amalni ortga qaytarib bo'lmaydi.",
+          style: TextStyle(fontSize: 13.sp, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Bekor'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+            child: const Text("Butunlay o'chirish"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final ok = await PendingVerificationProvider.purgeByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    await _refreshFromCloud();
+    _toast(
+      title: "Butunlay o'chirildi",
+      body: '${pv.name} bazadan olib tashlandi.',
+      bg: Colors.red.shade900,
     );
   }
 
@@ -296,6 +364,8 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
         onReject: () => _reject(list[i]),
         onSuspend: () => _suspend(list[i]),
         onDelete: () => _confirmDelete(list[i]),
+        onRestore: () => _restore(list[i]),
+        onPurge: () => _confirmPurge(list[i]),
       ),
     );
   }
@@ -305,6 +375,7 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
       case 'pending':  return 'verif_empty'.tr;
       case 'approved': return "Tasdiqlangan ustalar yo'q";
       case 'rejected': return "Rad etilgan arizalar yo'q";
+      case 'deleted':  return "O'chirilganlar yo'q";
       default:         return "Hech qanday ariza yo'q";
     }
   }
@@ -356,6 +427,8 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
                 onReject: () => _reject(list[i]),
                 onSuspend: () => _suspend(list[i]),
                 onDelete: () => _confirmDelete(list[i]),
+                onRestore: () => _restore(list[i]),
+                onPurge: () => _confirmPurge(list[i]),
               ),
             );
           }),
@@ -660,6 +733,16 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
           _miniBtn('Re-approve', const Color(0xFF198754),
               Icons.check_rounded, () => _approve(pv), filled: true),
         ]);
+      // The bin. Restore is the prominent one; purging is the only action on
+      // this page that cannot be taken back, so it sits second and confirms.
+      case 'deleted':
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          _miniBtn('Butunlay', const Color(0xFFB91C1C),
+              Icons.delete_forever_rounded, () => _confirmPurge(pv)),
+          const SizedBox(width: 6),
+          _miniBtn('Tiklash', const Color(0xFF198754),
+              Icons.restore_rounded, () => _restore(pv), filled: true),
+        ]);
       default:
         return const SizedBox.shrink();
     }
@@ -740,6 +823,12 @@ class _EmbeddedToolbar extends StatelessWidget {
       ('pending',  'Kutilmoqda',   const Color(0xFFE65100)),
       ('approved', 'Tasdiqlangan', const Color(0xFF2E7D32)),
       ('rejected', 'Rad etilgan',  const Color(0xFFD32F2F)),
+      // The bin. Last on purpose, and deliberately NOT folded into 'Barchasi'
+      // — that stays the working list. Without this chip a deleted provider
+      // was unreachable from the admin entirely: the row survived, but nothing
+      // could show it, so a mistaken delete could only be undone from the
+      // database.
+      ('deleted',  "O'chirilgan",  const Color(0xFF64748B)),
     ];
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -962,6 +1051,8 @@ class _UstaCard extends StatelessWidget {
   final VoidCallback onReject;
   final VoidCallback onSuspend;
   final VoidCallback onDelete;
+  final VoidCallback onRestore;
+  final VoidCallback onPurge;
 
   const _UstaCard({
     required this.pv,
@@ -970,6 +1061,8 @@ class _UstaCard extends StatelessWidget {
     required this.onReject,
     required this.onSuspend,
     required this.onDelete,
+    required this.onRestore,
+    required this.onPurge,
   });
 
   String _initials(String name) {
@@ -1156,6 +1249,14 @@ class _UstaCard extends StatelessWidget {
           SizedBox(width: 8.w),
           Expanded(flex: 2, child: _btnFilled('Qayta tasdiqlash',
               const Color(0xFF198754), Icons.check_rounded, onApprove)),
+        ]);
+      case 'deleted':
+        return Row(children: [
+          Expanded(child: _btnOutlined('Butunlay', const Color(0xFFB91C1C),
+              Icons.delete_forever_rounded, onPurge)),
+          SizedBox(width: 8.w),
+          Expanded(flex: 2, child: _btnFilled('Tiklash',
+              const Color(0xFF198754), Icons.restore_rounded, onRestore)),
         ]);
       default:
         return const SizedBox.shrink();

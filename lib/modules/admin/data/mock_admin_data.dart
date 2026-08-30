@@ -150,6 +150,20 @@ class PendingVerificationProvider {
     return ok;
   }
 
+  /// Pass-through for the bin's restore action. Brings the row back as
+  /// 'pending' so a moderator decides again — restoring never republishes.
+  static Future<bool> restoreByUstaId(String ustaId) async {
+    return UstaRegistrationProvider.restore(ustaId);
+  }
+
+  /// Pass-through for emptying the bin. Permanent: the row and its chat rooms
+  /// and reviews go. Only works on a row that is already binned.
+  static Future<bool> purgeByUstaId(String ustaId) async {
+    final ok = await UstaRegistrationProvider.purge(ustaId);
+    if (ok) _pending.removeWhere((_, v) => v.ustaId == ustaId);
+    return ok;
+  }
+
   /// Pass-through to UstaRegistrationProvider for the admin suspend action.
   /// Marks an approved usta as 'rejected' so they vanish from the
   /// marketplace listing but stay in the admin queue for audit.
