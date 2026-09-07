@@ -49,6 +49,7 @@ class RealtimeAdminService {
 
   RealtimeChannel? _registrationsChannel;
   RealtimeChannel? _complaintsChannel;
+  RealtimeChannel? _chatReportsChannel;
 
   final StreamController<RealtimeAdminEvent> _events =
       StreamController<RealtimeAdminEvent>.broadcast();
@@ -122,6 +123,25 @@ class RealtimeAdminService {
           print('[realtime] complaints channel error: $err');
         }
       });
+
+    // ── chat_reports channel ──────────────────────────────────────────
+    // The UGC control (Apple 1.2): a customer reporting a chat or, since
+    // 2026-09-07, a provider's profile. It had no channel at all, so a report
+    // was only ever seen by an admin already sitting on the reports page —
+    // reported and unnoticed is the same as unreported.
+    _chatReportsChannel = client.channel('admin-chat-reports')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'chat_reports',
+        callback: (payload) => _onChatReportInsert(payload),
+      )
+      ..subscribe((status, err) {
+        if (err != null && kDebugMode) {
+          // ignore: avoid_print
+          print('[realtime] chat_reports channel error: $err');
+        }
+      });
   }
 
   /// Closes both channels and resets state. Called from signOut +
@@ -135,8 +155,12 @@ class RealtimeAdminService {
     try {
       await _complaintsChannel?.unsubscribe();
     } catch (_) {/* ignore */}
+    try {
+      await _chatReportsChannel?.unsubscribe();
+    } catch (_) {/* ignore */}
     _registrationsChannel = null;
     _complaintsChannel = null;
+    _chatReportsChannel = null;
   }
 
   // ── Permission flow ─────────────────────────────────────────────────────
@@ -207,6 +231,30 @@ class RealtimeAdminService {
     _events.add(RealtimeAdminEvent.registrationUpdated(
       id: (row['id'] ?? '').toString(),
       status: (row['status'] ?? '').toString(),
+    ));
+  }
+
+  /// A report filed from the app — chat or profile.
+  ///
+  /// room_id tells the two apart: a profile report has none, and says so, so
+  /// the admin knows whether to open a conversation or the listing itself.
+  void _onChatReportInsert(PostgresChangePayload payload) {
+    final row = Map<String, dynamic>.from(payload.newRecord);
+    final reason = (row['reason'] ?? '').toString();
+    final fromProfile = (row['room_id'] ?? '').toString().isEmpty;
+    final where = fromProfile ? 'Profil' : 'Chat';
+
+    _showBrowserNotification(
+      title: '⚠️ Yangi shikoyat ($where)',
+      body: reason,
+      tag: 'rep-${row['id']}',
+    );
+    _playDing();
+
+    _events.add(RealtimeAdminEvent.chatReportInserted(
+      id: (row['id'] ?? '').toString(),
+      reason: reason,
+      fromProfile: fromProfile,
     ));
   }
 
@@ -323,6 +371,7 @@ enum RealtimeAdminEventKind {
   registrationInserted,
   registrationUpdated,
   complaintInserted,
+  chatReportInserted,
 }
 
 class RealtimeAdminEvent {
@@ -364,6 +413,20 @@ class RealtimeAdminEvent {
         kind: RealtimeAdminEventKind.registrationUpdated,
         id: id,
         status: status,
+      );
+
+  factory RealtimeAdminEvent.chatReportInserted({
+    required String id,
+    required String reason,
+    required bool fromProfile,
+  }) =>
+      RealtimeAdminEvent._(
+        kind: RealtimeAdminEventKind.chatReportInserted,
+        id: id,
+        reason: reason,
+        // Reused rather than a new field: the panel only needs to say WHERE it
+        // came from, and every consumer already reads `category`.
+        category: fromProfile ? 'profile' : 'chat',
       );
 
   factory RealtimeAdminEvent.complaintInserted({

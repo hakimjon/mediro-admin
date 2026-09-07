@@ -129,6 +129,23 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
           );
         }
         break;
+      case RealtimeAdminEventKind.chatReportInserted:
+        // Red, like a complaint: this is somebody saying a listing or a
+        // conversation is abusive, and it is the control the stores ask about.
+        Get.snackbar(
+          ev.category == 'profile'
+              ? 'Yangi shikoyat — profil'
+              : 'Yangi shikoyat — chat',
+          ev.reason,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: const Color(0xFFD32F2F),
+          colorText: Colors.white,
+          margin: const EdgeInsets.all(12),
+          borderRadius: 10,
+          duration: const Duration(seconds: 4),
+          icon: const Icon(Icons.flag_rounded, color: Colors.white),
+        );
+        break;
       case RealtimeAdminEventKind.complaintInserted:
         Get.snackbar(
           'Yangi shikoyat',
