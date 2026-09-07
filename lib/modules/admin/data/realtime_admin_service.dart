@@ -171,12 +171,22 @@ class RealtimeAdminService {
     // up immediately when the user navigates to that section.
     _mergeRegistrationRow(row);
 
-    // Browser notification + sound only for genuinely-new pending rows.
-    // (An admin-initiated UPDATE that triggers a phantom INSERT shouldn't
-    // ping anyone — that's why we check status here.)
-    if (status == 'pending') {
+    // Ping for a genuinely-new provider, whichever state they arrive in.
+    //
+    // ⛔ This used to test `status == 'pending'`, which stopped meaning "new"
+    // on 2026-09-07: auto-approval lands a registration as 'approved', so the
+    // old check silenced the notification for every real joiner — the admin
+    // heard nothing at exactly the moment review moved from before publication
+    // to after it. The status still decides the WORDING, because an
+    // auto-approved provider is already live and is the one worth looking at.
+    //
+    // What the check was really guarding against is an admin's own status flip
+    // echoing back; those arrive on the UPDATE channel, which is separate.
+    if (status == 'pending' || status == 'approved') {
       _showBrowserNotification(
-        title: '🆕 Yangi usta arizasi',
+        title: status == 'approved'
+            ? "🆕 Yangi usta qo'shildi — tekshiring"
+            : '🆕 Yangi usta arizasi',
         body: '$name — $category',
         tag: 'reg-${row['id']}',
       );

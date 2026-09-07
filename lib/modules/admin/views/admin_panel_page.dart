@@ -107,12 +107,19 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     setState(() {/* badges read fresh in build */});
     switch (ev.kind) {
       case RealtimeAdminEventKind.registrationInserted:
-        if (ev.status == 'pending') {
+        // Both states are worth a toast since auto-approval (2026-09-07): a
+        // provider who arrives already 'approved' is LIVE, so they are the one
+        // that actually needs eyes. Testing only for 'pending' here made the
+        // panel silent for every real joiner. Amber, not blue, for that case —
+        // it is a review to do, not a queue item to work through.
+        if (ev.status == 'pending' || ev.status == 'approved') {
+          final live = ev.status == 'approved';
           Get.snackbar(
-            'Yangi ariza',
+            live ? "Yangi usta qo'shildi" : 'Yangi ariza',
             '${ev.name} — ${ev.category}',
             snackPosition: SnackPosition.TOP,
-            backgroundColor: const Color(0xFF1976D2),
+            backgroundColor:
+                live ? const Color(0xFFB45309) : const Color(0xFF1976D2),
             colorText: Colors.white,
             margin: const EdgeInsets.all(12),
             borderRadius: 10,
