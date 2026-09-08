@@ -45,6 +45,12 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
   bool _loading = false;
   String _statusFilter = 'pending'; // 'all'|'pending'|'approved'|'rejected'
   String _search = '';
+  /// Specialty narrowing, or 'all'. Auto-approval put every trade into one
+  /// undifferentiated list -- plumbers, electricians and hauliers together --
+  /// and sorting by the SPECIALTY column only groups them, it does not hide
+  /// the rest. Reading one trade at a time is the thing the admin actually
+  /// does, so it gets a control rather than a sort click.
+  String _specialty = 'all';
   // Desktop table sort state.
   int _sortColumnIndex = 5; // Submitted (newest first by default)
   bool _sortAscending = false;
@@ -281,6 +287,21 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
   Widget build(BuildContext context) {
     // Pull rows filtered by the currently selected status tab + search term.
     var list = PendingVerificationProvider.byStatus(_statusFilter);
+    // Options come from the status-filtered set BEFORE narrowing by specialty,
+    // otherwise picking one would leave the dropdown holding only itself.
+    final specialties = list
+        .map((pv) => pv.specialty.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    // A chosen specialty that the current status has none of would silently
+    // show an empty table, so it falls back to 'all' rather than lying.
+    final activeSpecialty =
+        specialties.contains(_specialty) ? _specialty : 'all';
+    if (activeSpecialty != 'all') {
+      list = list.where((pv) => pv.specialty.trim() == activeSpecialty).toList();
+    }
     if (_search.trim().isNotEmpty) {
       final q = _search.trim().toLowerCase();
       list = list.where((pv) =>
@@ -289,7 +310,7 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
           (pv.phoneMasked ?? '').toLowerCase().contains(q)).toList();
     }
     if (widget.embedded) {
-      return _buildEmbeddedShell(list);
+      return _buildEmbeddedShell(list, specialties, activeSpecialty);
     }
     final body = _buildBody(list);
     return Scaffold(
@@ -387,7 +408,8 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
   /// DataTable view when the parent is at least 900 px wide. Below 900 px
   /// it falls back to the mobile card list so the panel works on narrow
   /// browser windows.
-  Widget _buildEmbeddedShell(List<PendingVerification> list) {
+  Widget _buildEmbeddedShell(List<PendingVerification> list,
+      List<String> specialties, String activeSpecialty) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -397,6 +419,9 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
           searchValue: _search,
           onSearch: (v) => setState(() => _search = v),
           totalCount: list.length,
+          specialties: specialties,
+          specialty: activeSpecialty,
+          onSpecialty: (v) => setState(() => _specialty = v),
           onRefresh: _refresh,
           isRefreshing: _loading,
         ),
@@ -803,6 +828,10 @@ class _EmbeddedToolbar extends StatelessWidget {
   final String searchValue;
   final ValueChanged<String> onSearch;
   final int totalCount;
+  /// Every distinct trade in the current status tab, alphabetical.
+  final List<String> specialties;
+  final String specialty;
+  final ValueChanged<String> onSpecialty;
   final Future<void> Function() onRefresh;
   final bool isRefreshing;
 
@@ -812,6 +841,9 @@ class _EmbeddedToolbar extends StatelessWidget {
     required this.searchValue,
     required this.onSearch,
     required this.totalCount,
+    required this.specialties,
+    required this.specialty,
+    required this.onSpecialty,
     required this.onRefresh,
     required this.isRefreshing,
   });
@@ -903,6 +935,47 @@ class _EmbeddedToolbar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        // Hidden when there is nothing to choose between: a dropdown holding
+        // one trade is furniture, not a filter.
+        if (specialties.length > 1) ...[
+          Container(
+            height: 36,
+            constraints: const BoxConstraints(maxWidth: 210),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0x14000000)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: specialty,
+                isDense: true,
+                isExpanded: true,
+                icon: const Icon(Icons.expand_more_rounded, size: 18),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: 'all',
+                    child: Text('Barcha mutaxassisliklar',
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  for (final sp in specialties)
+                    DropdownMenuItem(
+                      value: sp,
+                      child: Text(sp, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => onSpecialty(v ?? 'all'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
         SizedBox(
           width: 260,
           height: 36,

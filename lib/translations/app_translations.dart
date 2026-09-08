@@ -891,8 +891,8 @@ class AppTranslations extends Translations {
       'prov_unit': 'Birlik',
       'prov_photos': 'Rasmlar',
       'admin_sign_out_tooltip':      'Chiqish',
-      'admin_tile_verif_title':      'Ustani tasdiqlash',
-      'admin_tile_verif_sub':        'Pending Verifications',
+      'admin_tile_verif_title':      'Ustalar',
+      'admin_tile_verif_sub':        'All providers',
       'admin_tile_complaints_title': "Shikoyatlarni ko'rish",
       'admin_tile_complaints_sub':   'Complaint Management',
       'admin_tile_telemetry_title':  'Telemetry & Feedback',
@@ -916,7 +916,7 @@ class AppTranslations extends Translations {
       'detail_seeded_phone':         '— (seeded fixture)',
 
       // ── PENDING VERIFICATIONS PAGE (1H) ──────────────────────────────
-      'verif_title':                 'Pending Verifications',
+      'verif_title':                 'Ustalar',
       'verif_empty':                 "Kutilayotgan tasdiqlar yo'q",
       'verif_snack_approved_body':   '{name} ustaga tasdiq berildi.',
       'verif_snack_rejected_body':   '{name} ustaga rad javobi yuborildi.',
@@ -1834,8 +1834,8 @@ class AppTranslations extends Translations {
       'prov_unit': 'Единица',
       'prov_photos': 'Фото',
       'admin_sign_out_tooltip':      'Выход',
-      'admin_tile_verif_title':      'Подтверждение мастера',
-      'admin_tile_verif_sub':        'Pending Verifications',
+      'admin_tile_verif_title':      'Мастера',
+      'admin_tile_verif_sub':        'All providers',
       'admin_tile_complaints_title': 'Просмотр жалоб',
       'admin_tile_complaints_sub':   'Complaint Management',
       'admin_tile_telemetry_title':  'Телеметрия и фидбэк',
@@ -1859,7 +1859,7 @@ class AppTranslations extends Translations {
       'detail_seeded_phone':         '— (демо-данные)',
 
       // ── PENDING VERIFICATIONS PAGE (этап 1H) ─────────────────────────
-      'verif_title':                 'Заявки на подтверждение',
+      'verif_title':                 'Мастера',
       'verif_empty':                 'Нет ожидающих подтверждений',
       'verif_snack_approved_body':   'Мастер {name} подтверждён.',
       'verif_snack_rejected_body':   'Мастеру {name} отправлен отказ.',
