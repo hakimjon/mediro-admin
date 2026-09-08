@@ -898,7 +898,7 @@ class AppTranslations extends Translations {
       'admin_tile_telemetry_title':  'Telemetry & Feedback',
       'admin_tile_telemetry_sub':    'Errors · Flow · Beta-Feedback',
       'admin_rbac_note':             "RBAC: Mijozlar bu panelni ko'ra olmaydi. Ustalar faqat o'z buyurtmalarini ko'radi.",
-      'admin_stat_pending':          'Kutilayotgan',
+      "admin_stat_pending":          "Ko'rilmagan",
       'admin_stat_complaints':       'Ochiq shikoyat',
 
       // ── USTA DETAIL ADMIN VIEW (1H) ──────────────────────────────────
@@ -1841,7 +1841,7 @@ class AppTranslations extends Translations {
       'admin_tile_telemetry_title':  'Телеметрия и фидбэк',
       'admin_tile_telemetry_sub':    'Errors · Flow · Beta-Feedback',
       'admin_rbac_note':             'RBAC: Клиенты не видят эту панель. Мастера видят только свои заказы.',
-      'admin_stat_pending':          'Ожидают',
+      "admin_stat_pending":          "Не просмотрено",
       'admin_stat_complaints':       'Открытые жалобы',
 
       // ── USTA DETAIL ADMIN VIEW (этап 1H) ─────────────────────────────

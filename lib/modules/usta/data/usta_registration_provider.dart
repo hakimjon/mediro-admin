@@ -66,6 +66,14 @@ class UstaRegistration {
                                   // back to 'pending' (the OLD specialty)
   final String providerType;      // 'individual' | 'business' (MCHJ/firm)
 
+  /// When an admin last READ this provider — null while it waits to be read.
+  /// ⛔ Not a status: auto-approval means a row is live and unread at the same
+  /// time, and the queue this drives is the whole reason approval could be
+  /// opened up. Mutable because marking one read must not refetch the list.
+  DateTime? reviewedAt;
+
+  bool get isReviewed => reviewedAt != null;
+
   UstaRegistration({
     required this.id,
     required this.name,
@@ -77,6 +85,7 @@ class UstaRegistration {
     required this.submittedAt,
     this.prevCategory,
     this.providerType = 'individual',
+    this.reviewedAt,
   });
 
   /// True for a company / MCHJ (equipment owner), false for an individual usta.
@@ -235,6 +244,44 @@ class UstaRegistrationProvider {
     }
   }
 
+  /// Stamps [id] as read by the signed-in admin. Local list updated first so
+  /// the row leaves the queue at once; a server refusal puts it back rather
+  /// than leaving the admin believing they filed something they did not.
+  ///
+  /// `.select()` for the same reason the status update uses it: an RLS refusal
+  /// returns zero rows without throwing, and a silent no-op here would quietly
+  /// empty the queue.
+  static Future<bool> markReviewed(String id) async {
+    final now = DateTime.now();
+    UstaRegistration? row;
+    for (final r in _all) {
+      if (r.id == id) { row = r; break; }
+    }
+    final previous = row?.reviewedAt;
+    row?.reviewedAt = now;
+    try {
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      final res = await Supabase.instance.client
+          .from('usta_registrations')
+          .update({
+            'reviewed_at': now.toUtc().toIso8601String(),
+            if (uid != null) 'reviewed_by': uid,
+          })
+          .eq('id', id)
+          .select();
+      final ok = (res as List).isNotEmpty;
+      if (!ok) row?.reviewedAt = previous;
+      return ok;
+    } catch (e) {
+      row?.reviewedAt = previous;
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[usta_registration] markReviewed failed: $e');
+      }
+      return false;
+    }
+  }
+
   // ── Cloud fetch ──────────────────────────────────────────────────────
 
   /// Tracks whether the cloud sync has been attempted at least once this
@@ -280,11 +327,14 @@ class UstaRegistrationProvider {
                   DateTime.now(),
           prevCategory: (m['prev_category'] as String?),
           providerType: (m['provider_type'] ?? 'individual').toString(),
+          reviewedAt:
+              DateTime.tryParse((m['reviewed_at'] ?? '').toString()),
         );
         if (existingById.containsKey(id)) {
           // Refresh status + prev-category in case it changed remotely.
           existingById[id]!.status = entry.status;
           existingById[id]!.prevCategory = entry.prevCategory;
+          existingById[id]!.reviewedAt = entry.reviewedAt;
         } else {
           _all.add(entry);
         }

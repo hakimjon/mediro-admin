@@ -61,6 +61,14 @@ class PendingVerification {
   /// True for a company / MCHJ (equipment owner), false for an individual usta.
   final bool isBusiness;
 
+  /// Null while the provider is still waiting to be READ by an admin.
+  /// ⛔ Orthogonal to [status]: auto-approval publishes a provider the moment
+  /// they apply, so 'approved' and 'never looked at' are the normal state of a
+  /// brand-new row.
+  final DateTime? reviewedAt;
+
+  bool get isReviewed => reviewedAt != null;
+
   const PendingVerification({
     required this.ustaId,
     required this.name,
@@ -74,6 +82,7 @@ class PendingVerification {
     this.status = 'pending',
     this.prevSpecialty,
     this.isBusiness = false,
+    this.reviewedAt,
   });
 }
 
@@ -105,6 +114,7 @@ class PendingVerificationProvider {
         status: r.status,
         prevSpecialty: r.prevCategory,
         isBusiness: r.isBusiness,
+        reviewedAt: r.reviewedAt,
       );
     }).toList();
     final out = [...fromSeed, ...fromRegs];
@@ -120,9 +130,16 @@ class PendingVerificationProvider {
   /// 'deleted'. The 'deleted' entries are always hidden by default.
   static List<PendingVerification> byStatus(String statusFilter) {
     final all = UstaRegistrationProvider.allRegistrations();
-    final filtered = statusFilter == 'all'
-        ? all.where((r) => r.status != 'deleted').toList()
-        : all.where((r) => r.status == statusFilter).toList();
+    // 'unreviewed' is not a status -- it cuts ACROSS them. It asks the only
+    // question auto-approval left unanswered: has a person read this row yet?
+    // The bin is excluded like it is from 'all': a deleted provider needs no
+    // reading.
+    final filtered = switch (statusFilter) {
+      'all' => all.where((r) => r.status != 'deleted').toList(),
+      'unreviewed' =>
+        all.where((r) => !r.isReviewed && r.status != 'deleted').toList(),
+      _ => all.where((r) => r.status == statusFilter).toList(),
+    };
     return filtered.map((r) {
       return PendingVerification(
         ustaId: r.id,
@@ -137,9 +154,20 @@ class PendingVerificationProvider {
         status: r.status,
         prevSpecialty: r.prevCategory,
         isBusiness: r.isBusiness,
+        reviewedAt: r.reviewedAt,
       );
     }).toList();
   }
+
+  /// Pass-through for the "I have read this" action.
+  static Future<bool> markReviewedByUstaId(String ustaId) =>
+      UstaRegistrationProvider.markReviewed(ustaId);
+
+  /// How many providers are still waiting to be read -- the badge the empty
+  /// 'pending' counter no longer earns.
+  static int unreviewedCount() => UstaRegistrationProvider.allRegistrations()
+      .where((r) => !r.isReviewed && r.status != 'deleted')
+      .length;
 
   /// Pass-through to UstaRegistrationProvider for the admin delete action.
   /// Returns true only when the DB write succeeded (drops the seeded entry

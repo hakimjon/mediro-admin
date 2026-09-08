@@ -154,6 +154,22 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
 
   /// Admin: revoke approval — usta vanishes from the marketplace listing
   /// but stays in the queue (status='rejected') for audit / re-approval.
+  /// Stamps the provider as read. ⛔ Deliberately does NOT refresh from the
+  /// cloud: a refetch would rebuild the list under the admin's cursor mid-scan,
+  /// and the provider already updated the row in place. The row simply leaves
+  /// the "Ko'rilmagan" tab on the next paint.
+  Future<void> _markRead(PendingVerification pv) async {
+    final ok = await PendingVerificationProvider.markReviewedByUstaId(pv.ustaId);
+    if (!mounted) return;
+    if (!ok) return _toastError();
+    setState(() {});
+    _toast(
+      title: "Ko'rildi",
+      body: "${pv.name} ko'rilganlar ro'yxatiga o'tdi.",
+      bg: const Color(0xFF1976D2),
+    );
+  }
+
   Future<void> _suspend(PendingVerification pv) async {
     final ok = await PendingVerificationProvider.suspendByUstaId(pv.ustaId);
     if (!mounted) return;
@@ -733,9 +749,23 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
   }
 
   Widget _tableActions(PendingVerification pv, String status) {
+    // "I have read this" rides IN FRONT of the status actions rather than
+    // replacing them: reading a provider is not the same decision as
+    // suspending one, and an admin usually reads without acting.
+    final read = pv.isReviewed || status == 'deleted'
+        ? null
+        : _miniBtn("Ko'rdim", const Color(0xFF1976D2),
+            Icons.done_all_rounded, () => _markRead(pv));
+    Row withRead(List<Widget> rest) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (read != null) ...[read, const SizedBox(width: 6)],
+            ...rest,
+          ],
+        );
     switch (status) {
       case 'pending':
-        return Row(mainAxisSize: MainAxisSize.min, children: [
+        return withRead([
           _miniBtn('Reject', const Color(0xFFB45309),
               Icons.close_rounded, () => _reject(pv)),
           const SizedBox(width: 6),
@@ -743,7 +773,7 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
               Icons.check_rounded, () => _approve(pv), filled: true),
         ]);
       case 'approved':
-        return Row(mainAxisSize: MainAxisSize.min, children: [
+        return withRead([
           _miniBtn('Suspend', const Color(0xFFB45309),
               Icons.block_rounded, () => _suspend(pv)),
           const SizedBox(width: 6),
@@ -751,7 +781,7 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
               Icons.delete_outline_rounded, () => _confirmDelete(pv)),
         ]);
       case 'rejected':
-        return Row(mainAxisSize: MainAxisSize.min, children: [
+        return withRead([
           _miniBtn('Delete', const Color(0xFFD32F2F),
               Icons.delete_outline_rounded, () => _confirmDelete(pv)),
           const SizedBox(width: 6),
@@ -852,6 +882,10 @@ class _EmbeddedToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final filters = [
       ('all',      'Barchasi',     const Color(0xFF64748B)),
+      // First on purpose, right after 'all': with auto-approval this is the
+      // only tab that still describes work waiting to be done. 'Kutilmoqda'
+      // keeps its place but is empty for good.
+      ('unreviewed', "Ko'rilmagan", const Color(0xFF1976D2)),
       ('pending',  'Kutilmoqda',   const Color(0xFFE65100)),
       ('approved', 'Tasdiqlangan', const Color(0xFF2E7D32)),
       ('rejected', 'Rad etilgan',  const Color(0xFFD32F2F)),
@@ -1071,6 +1105,7 @@ class _FilterChipsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final filters = [
       ('all',      'Barchasi',     Colors.grey.shade300),
+      ('unreviewed', "Ko'rilmagan", Colors.blue.shade300),
       ('pending',  'Kutilmoqda',   Colors.orange.shade300),
       ('approved', 'Tasdiqlangan', Colors.green.shade300),
       ('rejected', 'Rad etilgan',  Colors.red.shade300),

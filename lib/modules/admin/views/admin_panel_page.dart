@@ -191,7 +191,11 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pending = PendingVerificationProvider.pendingCount();
+    // ⛔ NOT pendingCount(): auto-approval (2026-09-08) means nothing sits at
+    // 'pending' any more, so that badge read 0 for ever and stopped being a
+    // signal. The number worth carrying is how many providers are live but
+    // still unread — the queue that replaced approval.
+    final pending = PendingVerificationProvider.unreviewedCount();
     final openComplaints = ComplaintProvider.openCount();
     final adminEmail = AdminSessionController.ensure().adminEmail.value;
 
