@@ -917,7 +917,7 @@ class AppTranslations extends Translations {
 
       // ── PENDING VERIFICATIONS PAGE (1H) ──────────────────────────────
       'verif_title':                 'Ustalar',
-      'verif_empty':                 "Kutilayotgan tasdiqlar yo'q",
+      'verif_empty':                 "Bu yerda usta yo'q",
       'verif_snack_approved_body':   '{name} ustaga tasdiq berildi.',
       'verif_snack_rejected_body':   '{name} ustaga rad javobi yuborildi.',
 
@@ -1860,7 +1860,7 @@ class AppTranslations extends Translations {
 
       // ── PENDING VERIFICATIONS PAGE (этап 1H) ─────────────────────────
       'verif_title':                 'Мастера',
-      'verif_empty':                 'Нет ожидающих подтверждений',
+      'verif_empty':                 'Здесь нет мастеров',
       'verif_snack_approved_body':   'Мастер {name} подтверждён.',
       'verif_snack_rejected_body':   'Мастеру {name} отправлен отказ.',
 

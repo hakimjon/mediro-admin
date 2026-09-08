@@ -122,7 +122,6 @@ class PendingVerificationProvider {
     return out;
   }
 
-  static int pendingCount() => all().length;
 
   /// Returns ALL registrations (any status) as PendingVerification rows.
   /// Used by the new admin "All Ustalar" page with status filter tabs.

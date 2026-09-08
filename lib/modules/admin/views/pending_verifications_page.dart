@@ -403,6 +403,7 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
         onDelete: () => _confirmDelete(list[i]),
         onRestore: () => _restore(list[i]),
         onPurge: () => _confirmPurge(list[i]),
+        onMarkRead: list[i].isReviewed ? null : () => _markRead(list[i]),
       ),
     );
   }
@@ -470,6 +471,8 @@ class _PendingVerificationsPageState extends State<PendingVerificationsPage> {
                 onDelete: () => _confirmDelete(list[i]),
                 onRestore: () => _restore(list[i]),
                 onPurge: () => _confirmPurge(list[i]),
+                onMarkRead:
+                    list[i].isReviewed ? null : () => _markRead(list[i]),
               ),
             );
           }),
@@ -1161,6 +1164,8 @@ class _UstaCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onRestore;
   final VoidCallback onPurge;
+  /// Null when there is nothing to mark — already read, or in the bin.
+  final VoidCallback? onMarkRead;
 
   const _UstaCard({
     required this.pv,
@@ -1171,6 +1176,7 @@ class _UstaCard extends StatelessWidget {
     required this.onDelete,
     required this.onRestore,
     required this.onPurge,
+    this.onMarkRead,
   });
 
   String _initials(String name) {
@@ -1333,31 +1339,47 @@ class _UstaCard extends StatelessWidget {
   }
 
   Widget _statusActions(String status) {
+    // The narrow layout gets the same "I have read this" affordance the table
+    // has. Its own ROW above the status buttons, not squeezed in beside them:
+    // three buttons across a phone-width card leaves no room for a label, and
+    // an icon alone would not say what it does.
+    final mark = onMarkRead;
+    Widget withRead(Widget rest) => mark == null
+        ? rest
+        : Column(children: [
+            SizedBox(
+              width: double.infinity,
+              child: _btnOutlined("Ko'rdim", const Color(0xFF1976D2),
+                  Icons.done_all_rounded, mark),
+            ),
+            SizedBox(height: 8.h),
+            rest,
+          ]);
     switch (status) {
       case 'pending':
-        return Row(children: [
+        return withRead(Row(children: [
           Expanded(child: _btnOutlined('Rad etish', const Color(0xFFB45309),
               Icons.close_rounded, onReject)),
           SizedBox(width: 8.w),
           Expanded(flex: 2, child: _btnFilled('Tasdiqlash',
               const Color(0xFF198754), Icons.check_rounded, onApprove)),
-        ]);
+        ]));
       case 'approved':
-        return Row(children: [
+        return withRead(Row(children: [
           Expanded(child: _btnOutlined("To'xtatish", const Color(0xFFB45309),
               Icons.block_rounded, onSuspend)),
           SizedBox(width: 8.w),
           Expanded(child: _btnOutlined("O'chirish", const Color(0xFFD32F2F),
               Icons.delete_outline_rounded, onDelete)),
-        ]);
+        ]));
       case 'rejected':
-        return Row(children: [
+        return withRead(Row(children: [
           Expanded(child: _btnOutlined("O'chirish", const Color(0xFFD32F2F),
               Icons.delete_outline_rounded, onDelete)),
           SizedBox(width: 8.w),
           Expanded(flex: 2, child: _btnFilled('Qayta tasdiqlash',
               const Color(0xFF198754), Icons.check_rounded, onApprove)),
-        ]);
+        ]));
       case 'deleted':
         return Row(children: [
           Expanded(child: _btnOutlined('Butunlay', const Color(0xFFB91C1C),
