@@ -301,6 +301,7 @@ class RealtimeAdminService {
       submittedAt:
           DateTime.tryParse((m['submitted_at'] ?? '').toString()) ??
               DateTime.now(),
+      reviewedAt: DateTime.tryParse((m['reviewed_at'] ?? '').toString()),
     );
 
     final existing = UstaRegistrationProvider.allRegistrations()
@@ -308,6 +309,12 @@ class RealtimeAdminService {
         .toList();
     if (existing.isNotEmpty) {
       existing.first.status = entry.status;
+      // ⛔ status alone is not enough. A provider adding a trade clears
+      // reviewed_at server-side and touches nothing else, so merging only the
+      // status left the row looking read: the "Ko'rilmagan" chip and the header
+      // count both stayed put until someone pressed Yangilash. Same when
+      // another tab marks one read.
+      existing.first.reviewedAt = entry.reviewedAt;
     } else {
       // No public mutating method exists; fall back to fetch so the
       // provider's invariants stay intact. Cheap one-shot network call.
